@@ -1,16 +1,33 @@
-class HLeaf:
-    def __init__(self) -> None:
-        pass
+codes = [None] * 256
+def get_encoder_array():
+    res = [i for i in codes if i is not None]
+    return res
 class HTLeaf:
     def __init__(self, char: str, count: int):
         self.char = char
         self.count = count
+        self.odata = (char, count)
+    def __lt__(self, other):
+        if other == None:
+            return True
+        check = True
+        if self.count < other.count:
+            check = True
+        elif self.count > other.count:
+            check = False
+        else:
+            if ord(self.char) < ord(other.char):
+                check = True
+            else:
+                check = False
+        return check
 class HTree:
-    def __init__(self, node: HTLeaf, left = None, right = None):
+    def __init__(self, node: HTLeaf, left = None, right = None, code = ""):
         self.node = node
         self.data = (node.char, node.count)
         self.left = left
         self.right = right
+        self.code = code
     def sum(self)-> int:
         if self == None:
             return 0
@@ -19,7 +36,7 @@ class HTree:
         elif self.right and not self.left:
             return self.right.sum() + self.node.count
         elif self.left and self.right:
-            return self.left.sum() + self.right.sum() + self.node.count #data
+            return self.left.sum() + self.right.sum() + self.node.count
         else:
             return self.data
     def tree_frq(self):
@@ -27,13 +44,13 @@ class HTree:
         if self == None:
             return 0
         elif self.left and not self.right:
-            return self.left.node.tree_frq() + self.node.count
+            return self.left.tree_frq() + self.node.count
         elif self.right and not self.left:
-            return self.right.node.tree_frq() + self.node.count
+            return self.right.tree_frq() + self.node.count
         elif self.left and self.right:
             return self.left.tree_frq() + self.right.tree_frq() + self.node.count
         else:
-            return self.node.count - x 
+            return self.node.count
     def listify(self)-> list:
         rlist = []
         if self == None:
@@ -57,6 +74,20 @@ class HTListNode:
     def __init__(self, data):
         self.data = data
         self.next = None
+    def __lt__(self, other):
+        if other == None:
+            return True
+        check = True
+        if self.data.node.count < other.data.node.count:
+            check = True
+        elif self.data.node.count > other.data.node.count:
+            check = False
+        else:
+            if ord(self.data.node.char) < ord(other.data.node.char):
+                check = True
+            else:
+                check = False
+        return check
 class HTList():
     def __init__(self):
         self.head = HTListNode(None)
@@ -73,47 +104,9 @@ def cnt_frq(string: str):
         idx = ord(string[i])
         frq[idx]+=1
     return frq
-def tree_lt(first: HTree, second: HTree):
-    return (first.sum() <= second.sum())
-def base_tree_list(frq: list):
-    BTL = HTList()
-    BTL.head = HTListNode(HTLeaf(chr(0), frq(0)))
-    current = BTL.head
-    for i in range(frq[1:]):
-        current.next = HTLeaf(chr(i), frq(i))
-        current = current.next
-    return BTL
-def tree_list_insert(lst: HTList, new: HTree):
-    current = lst.head
-    currenter = current.next
-    while current.next:
-    # for i in range(lst.size()):
-        if not current.next.next:
-            if current.data.tree_frq() >= new.tree_frq():                
-                current.next = HTListNode(new)
-            else:
-                temp = current
-                current.data  = HTListNode(new)
-                current.next = temp
-            return lst
-        if new.tree_frq() > current.next.data.tree_frq():
-            temp = HTListNode(new)
-            current.next = temp
-            temp.next = currenter
-            currenter = temp
-        return lst
-def initial_tree_sort(uList: HTList):
-    sList = HTList()
-    sList.head = uList.head
-    current = uList.next
-    while current:
-        tree_list_insert(sList, current)
-    return sList
 def coalesce_once(lst: HTList):
     x = lst.head.next.next
     fr = lst.head.data
-    # print(type(lst.head))
-    # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", type(lst.head.next))
     ls = lst.head.next.data
     newLeaf = HTLeaf(None, int(fr.node.count + ls.node.count))
     if fr.node.count > ls.node.count:
@@ -129,68 +122,102 @@ def coalesce_once(lst: HTList):
         else:
             newLeaf.char = ls.node.char
             newTree = HTree(newLeaf, ls, fr)
-    # if lst.head.next.next:
-    # x = lst.head.next.next
-    #     lst.head = HTListNode(newTree)
-    #     lst.head.next = x
-    # else:
-    lst.head = HTListNode(newTree)
-    lst.head.next = x
+    newLeaf.count = ls.node.count + fr.node.count
+    y = HTListNode(newTree)
+    y.next = x
+    lst.head = y
     return lst
 def coalesce_all(lst: HTList):
     while lst.size() > 1:
-        coalesce_once(lst)
+        lst = initial_tree_sort(lst)
+        lst = coalesce_once(lst) 
     return lst
-def get_leaves(root: HTree):
-    leaves = []
-    if not root.left and not root.right:
-        return [root.data]
-    if not root.left:
-        leaves = get_leaves(root.right)
-    if not root.right:
-        leaves = get_leaves(root.left)
-    if root.left and root.right:
-        leaves = get_leaves(root.left) + get_leaves(root.right)
-    return leaves
-def get_paths(root: HTree):
-    paths = []
-    if not root.left and not root.right:
-        print("111111111111111111")
-        return paths
-    if not root.left:
-        print("222222222222222222")
-        paths = get_paths(root.right).append(1)
-    if not root.right:
-        print("3333333333333333333")
-        paths = get_paths(root.left).append(0)
-    if root.left and root.right:
-        print("444444444444444444")
-        paths = get_paths(root.left) + (get_paths(root.right))
-    print(paths)
-    return paths
-def build_encoder_array(slf: HTree):
-    rl = 256*[0]
-    leaves = get_leaves(slf)
-    paths = get_paths(slf)
-    for i in range(len(leaves)):
-        a = ord(leaves[i][0])
-        rl[a] = paths[i]
+def build_encoder_array(tree: HTree):
+    if tree.left == None and tree.right == None:
+        codes[ord(tree.node.char)] = tree.code
+    if tree.left:
+        tree.left.code = tree.code + "0"
+        build_encoder_array(tree.left)
+    if tree.right:
+        tree.right.code = tree.code + "1"
+        build_encoder_array(tree.right)
+def output(l: HTList):
+    current = l.head
+    o = []
+    while current.next:
+        o.append(current.data.listify())
+        current = current.next
+    o.append(current.data.listify())
+    return o
+def initial_tree_sort(lst: HTList):
+    l1 = []
+    l2 = []
+    rl = HTList()
+    rlcur = rl.head
+    current = lst.head
+    for i in range(lst.size()):
+        l1.append(current.data)
+        l2.append(current.data.node)
+        current = current.next
+    for i in range(len(l2)):
+        minI = i
+        for x in range(i,len(l2)):
+            if l2[x] < l2[minI]:
+                minI = x
+        t = l2[minI]
+        l2[minI] = l2[i]
+        l2[i] = t
+        t = l1[minI]
+        l1[minI] = l1[i]
+        l1[i] = t
+    rl.head = HTListNode(l1[0])
+    rlcur = rl.head
+    for i in range(1, len(l2)):
+        rlcur.next = HTListNode(l1[i])
+        rlcur = rlcur.next
     return rl
-
-aa = HTree(HTLeaf('s', 1))
-aa.left = HTree(HTLeaf('a', 1))
-aa.right = HTree(HTLeaf('t', 1))
-l = HTList()
-a = HTListNode(aa)
-l.head  = a
-b = HTListNode(HTree(HTLeaf('f', 1)))
-a.next = b
-c = HTListNode(HTree(HTLeaf('g', 1)))
-c.data.left = HTree(HTLeaf('x', 1))
-c.data.right = HTree(HTLeaf('v', 1))
-b.next = c
-print(a.data.listify())
-print(l.head.next.data.listify())
-coalesce_all(l)
-print(l.head.data.listify())
-print(l.head.data.tree_frq())
+def encode_string_one(string: str, array = []*256):
+    rl = []
+    ol = HTList()
+    array = cnt_frq(string)
+    for i in range(256):
+        if array[i]:
+            rl.append(HTree(HTLeaf(chr(i), array[i])))
+    ol.head = HTListNode(rl[0])
+    current = ol.head
+    for i in range(1,len(rl)):
+        current.next = HTListNode(rl[i])
+        current = current.next
+    ol = coalesce_all(ol)
+    build_encoder_array(ol.head.data)
+    ar = codes
+    clear = ""
+    for i in range(len(ar)):
+        if ar[i] != None:
+            clear += ar[i]
+    op = ""
+    for i in string:
+        op  = op + codes[ord(i)]
+    return op
+def bits_to_chars(string: str):
+    bits = string
+    chars = ""
+    for i in range((8-(len(string)%8))):
+        bits += "0"
+    itr = int(len(bits)/8)
+    for i in range(itr):
+        b2 = str(bits[i*8: i*8 + 8])
+        chars += str(int(b2, 2))
+    return chars
+def huffman_code_file(file_in: str, file_out: str):
+    try:
+        input_file = open(file_in, "r")
+    except:
+        raise FileNotFoundError
+    input_text = input_file.readlines()
+    output_file = open(file_out, "w")
+    for str in input_text:
+        output_file.write(encode_string_one(str))
+        output_file.write(bits_to_chars(encode_string_one(str)))
+    input_file.close()
+    output_file.close()
